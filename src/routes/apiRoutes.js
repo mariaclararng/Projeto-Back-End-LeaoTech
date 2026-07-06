@@ -5,12 +5,11 @@ const authMiddleware = require('../middlewares/authMiddleware'); // O nosso port
 
 const router = express.Router();
 
-// Rotas públicas (qualquer um acessa)
+// ROTA DE REGISTRO 
 router.post('/register', register);
 router.post('/login', login);
 
-// Rotas protegidas (precisam passar pelo porteiro antes de chegar ao controller)
-router.post('/cart', authMiddleware, addToCart); // Adicionar ao carrinho
-router.get('/cart', authMiddleware, getCart);    // Ver o carrinho
+router.post('/cart', authMiddleware, addToCart); // Quando o produto é adcionado no carrinho
+router.get('/cart', authMiddleware, getCart);    // Olhar o carrinho
 
 module.exports = router;

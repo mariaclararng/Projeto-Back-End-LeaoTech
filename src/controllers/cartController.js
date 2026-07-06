@@ -1,18 +1,13 @@
-// Criamos um carrinho na memória para simular o banco de dados de forma simples
-let carrinhoMemoria = {};
-
-// 1. ADICIONAR ITEM AO CARRINHO
+// ITEM AO CARRINHO DE COMPRA 
 const addToCart = async (req, res) => {
   try {
     const { item, quantidade } = req.body;
-    const emailUsuario = req.userEmail; // Pego o e-mail que o porteiro (middleware) validou
-
-    // Se o usuário ainda não tem um carrinho criado na memória, criamos um vazio
+    const emailUsuario = req.userEmail; 
     if (!carrinhoMemoria[emailUsuario]) {
       carrinhoMemoria[emailUsuario] = [];
     }
 
-    // Adiciona o item na lista do usuário
+    // QUANDO ITEM É ADCIONADO 
     carrinhoMemoria[emailUsuario].push({ item, quantidade });
 
     return res.status(200).json({ 
@@ -24,10 +19,10 @@ const addToCart = async (req, res) => {
   }
 };
 
-// 2. VER O CARRINHO
+// 2. CARRINHO
 const getCart = async (req, res) => {
   try {
-    const emailUsuario = req.userEmail; // Pego o e-mail que o porteiro validou
+    const emailUsuario = req.userEmail; // Pego o e-mail que o usuario validou
 
     // Busca os itens daquele usuário específico
     const meusItens = carrinhoMemoria[emailUsuario] || [];
