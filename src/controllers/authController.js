@@ -18,10 +18,6 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   },
 });
 
-<<<<<<< HEAD
-// CADASTRO USUARIO 
-=======
->>>>>>> 64c53e5 (adiciona integração com Supabase e configurações de autenticação)
 const register = async (req, res) => {
   try {
     const {
@@ -39,10 +35,6 @@ const register = async (req, res) => {
       complemento,
     } = req.body || {};
 
-<<<<<<< HEAD
-    const newUser = await prisma.user.create({
-      data: { name, email, password }
-=======
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Nome, e-mail e senha são obrigatórios.' });
     }
@@ -67,7 +59,6 @@ const register = async (req, res) => {
         numero: numero?.trim() || '',
         complemento: complemento?.trim() || '',
       },
->>>>>>> 64c53e5 (adiciona integração com Supabase e configurações de autenticação)
     });
 
     if (error) {
@@ -86,23 +77,12 @@ const register = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-// LOGIN DO USUARIIO 
-=======
->>>>>>> 64c53e5 (adiciona integração com Supabase e configurações de autenticação)
 const login = async (req, res) => {
   try {
     const { email, password } = req.body || {};
 
-<<<<<<< HEAD
-    const user = await prisma.user.findUnique({ where: { email } });
-  
-    if (!user || user.password !== password) {
-      return res.status(400).json({ error: 'E-mail ou senha incorretos.' });
-=======
     if (!email || !password) {
       return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
->>>>>>> 64c53e5 (adiciona integração com Supabase e configurações de autenticação)
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
