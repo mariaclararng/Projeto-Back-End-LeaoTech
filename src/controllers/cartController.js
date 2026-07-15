@@ -1,21 +1,23 @@
-// ITEM AO CARRINHO DE COMPRA 
+// ITEM AO CARRINHO DE COMPRA
 const addToCart = async (req, res) => {
   try {
     const { item, quantidade } = req.body;
-    const emailUsuario = req.userEmail; 
+    const emailUsuario = req.userEmail;
     if (!carrinhoMemoria[emailUsuario]) {
       carrinhoMemoria[emailUsuario] = [];
     }
 
-    // QUANDO ITEM É ADCIONADO 
+    // QUANDO ITEM É ADCIONADO
     carrinhoMemoria[emailUsuario].push({ item, quantidade });
 
-    return res.status(200).json({ 
-      message: 'Item adicionado ao carrinho com sucesso!', 
-      carrinho: carrinhoMemoria[emailUsuario] 
+    return res.status(200).json({
+      message: "Item adicionado ao carrinho com sucesso!",
+      carrinho: carrinhoMemoria[emailUsuario],
     });
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao adicionar item ao carrinho.' });
+    return res
+      .status(500)
+      .json({ error: "Erro ao adicionar item ao carrinho." });
   }
 };
 
@@ -29,7 +31,7 @@ const getCart = async (req, res) => {
 
     return res.status(200).json({ carrinho: meusItens });
   } catch (error) {
-    return res.status(500).json({ error: 'Erro ao buscar o carrinho.' });
+    return res.status(500).json({ error: "Erro ao buscar o carrinho." });
   }
 };
 

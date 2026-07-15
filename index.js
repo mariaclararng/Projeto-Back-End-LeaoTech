@@ -1,9 +1,9 @@
 // index.js
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config(); // Doten v
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config(); // Doten v
 
-const apiRoutes = require('./src/routes/apiRoutes');
+const apiRoutes = require("./src/routes/apiRoutes");
 
 const app = express();
 
@@ -11,10 +11,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// API para ligar 
-app.use('/api', apiRoutes);
+// API para ligar
+app.use("/api", apiRoutes);
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.status(200).json({ message: "Servidor rodando perfeitamente!" });
 });
 
