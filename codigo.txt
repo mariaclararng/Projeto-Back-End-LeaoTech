@@ -1,0 +1,424 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+prisma/
+  schema.prisma
+src/
+  controllers/
+    authController.js
+    cartController.js
+  middlewares/
+    authMiddleware.js
+  routes/
+    apiRoutes.js
+.gitignore
+index.js
+package.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+node_modules/
+.env
+/src/generated/prisma
+</file>
+
+<file path="prisma/schema.prisma">
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id          Int @id @default(autoincrement())
+  nome        String
+  cpf         String @unique
+  email       String @unique
+  password    String
+  celular     String
+  endereco    String
+  bairro      String
+  cidade      String
+  cep         String
+  complemento String?
+}
+</file>
+
+<file path="src/controllers/cartController.js">
+require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
+const getCart = async (req, res) => {
+  const { userId } = req.params;
+  let { data: cart, error: cartError } = await supabase.from('carts').select('id').eq('user_id', userId).eq('status', 'ativo').single();
+  
+  if (cartError && cartError.code !== 'PGRST116') return res.status(400).json({ erro: cartError.message });
+  if (!cart) return res.json({ cartId: null, items: [] });
+
+  const { data: items, error: itemsError } = await supabase
+    .from('cart_items')
+    .select(`id, quantity, price_at_addition, products (id, name, price, image, category, discount, discount_amount)`)
+    .eq('cart_id', cart.id)
+    .order('created_at', { ascending: true });
+
+  if (itemsError) return res.status(400).json({ erro: itemsError.message });
+  res.json({ cartId: cart.id, items });
+};
+
+const addToCart = async (req, res) => {
+  const { userId, productId, quantity, price } = req.body;
+  let { data: cart } = await supabase.from('carts').select('id').eq('user_id', userId).eq('status', 'ativo').single();
+
+  if (!cart) {
+    const { data: newCart, error: createError } = await supabase.from('carts').insert([{ user_id: userId, status: 'ativo' }]).select('id').single();
+    if (createError) return res.status(400).json({ erro: createError.message });
+    cart = newCart;
+  }
+
+  const { data: existingItem } = await supabase.from('cart_items').select('id, quantity').eq('cart_id', cart.id).eq('product_id', productId).single();
+
+  if (existingItem) {
+    const { error: updateError } = await supabase.from('cart_items').update({ quantity: existingItem.quantity + quantity }).eq('id', existingItem.id);
+    if (updateError) return res.status(400).json({ erro: updateError.message });
+  } else {
+    const { error: insertError } = await supabase.from('cart_items').insert([{ cart_id: cart.id, product_id: productId, quantity, price_at_addition: price }]);
+    if (insertError) return res.status(400).json({ erro: insertError.message });
+  }
+  res.status(200).json({ message: "Item adicionado" });
+};
+
+const updateCartItem = async (req, res) => {
+  const { id } = req.params;
+  const { quantity } = req.body;
+  if (quantity <= 0) return res.status(400).json({ erro: "Quantidade inválida" });
+  
+  const { error } = await supabase.from('cart_items').update({ quantity }).eq('id', id);
+  if (error) return res.status(400).json({ erro: error.message });
+  res.status(200).json({ message: "Atualizado" });
+};
+
+const removeCartItem = async (req, res) => {
+  const { id } = req.params;
+  const { error } = await supabase.from('cart_items').delete().eq('id', id);
+  if (error) return res.status(400).json({ erro: error.message });
+  res.status(200).json({ message: "Removido" });
+};
+
+const clearCart = async (req, res) => {
+  const { userId } = req.params;
+  const { data: cart } = await supabase.from('carts').select('id').eq('user_id', userId).eq('status', 'ativo').single();
+  if (!cart) return res.status(400).json({ erro: "Carrinho não encontrado" });
+
+  const { error } = await supabase.from('cart_items').delete().eq('cart_id', cart.id);
+  if (error) return res.status(400).json({ erro: error.message });
+  res.status(200).json({ message: "Esvaziado" });
+};
+
+module.exports = { getCart, addToCart, updateCartItem, removeCartItem, clearCart };
+</file>
+
+<file path="src/middlewares/authMiddleware.js">
+// ENTRADA DO SISTEMA
+const authMiddleware = (req, res, next) => {
+  const userEmail = req.headers['user-email'];
+
+  if (!userEmail) {
+    return res.status(401).json({ error: 'Acesso negado. Você precisa informar seu e-mail para acessar o carrinho.' });
+  }
+  req.userEmail = userEmail;
+  
+  next();
+};
+
+module.exports = authMiddleware;
+</file>
+
+<file path="src/routes/apiRoutes.js">
+const express = require('express');
+const { register, login } = require('../controllers/authController');
+const { getCart, addToCart, updateCartItem, removeCartItem, clearCart } = require('../controllers/cartController');
+const authMiddleware = require('../middlewares/authMiddleware'); // O nosso porteiro
+
+const router = express.Router();
+
+// ROTA DE REGISTRO 
+router.post('/register', register);
+router.post('/login', login);
+
+router.get('/cart/:userId', getCart);
+router.post('/cart/add', addToCart);
+router.put('/cart/item/:id', updateCartItem);
+router.delete('/cart/item/:id', removeCartItem);
+router.delete('/cart/clear/:userId', clearCart);
+module.exports = router;
+</file>
+
+<file path="src/controllers/authController.js">
+const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcrypt");
+
+const prisma = new PrismaClient();
+
+// CADASTRO
+const register = async (req, res) => {
+  try {
+    const {
+      nome,
+      cpf,
+      email,
+      password,
+      celular,
+      endereco,
+      bairro,
+      cidade,
+      cep,
+      complemento,
+    } = req.body;
+
+    // Verifica se já existe usuário
+    const userExists = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (userExists) {
+      return res.status(400).json({
+        error: "E-mail já cadastrado.",
+      });
+    }
+
+    // Criptografa a senha
+    const hashPassword = await bcrypt.hash(password, 10);
+
+    // Cadastra usuário
+    const newUser = await prisma.user.create({
+      data: {
+        nome,
+        cpf,
+        email,
+        password: hashPassword,
+        celular,
+        endereco,
+        bairro,
+        cidade,
+        cep,
+        complemento,
+      },
+    });
+
+    return res.status(201).json({
+      message: "Usuário cadastrado com sucesso!",
+      userId: newUser.id,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      error: "Erro ao cadastrar usuário.",
+    });
+  }
+};
+
+// LOGIN
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Procura usuário
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        error: "E-mail ou senha incorretos.",
+      });
+    }
+
+    // Compara senha
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if (!validPassword) {
+      return res.status(400).json({
+        error: "E-mail ou senha incorretos.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Login realizado com sucesso!",
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        cpf: user.cpf,
+        celular: user.celular,
+        endereco: user.endereco,
+        bairro: user.bairro,
+        cidade: user.cidade,
+        cep: user.cep,
+        complemento: user.complemento,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      error: "Erro ao realizar login.",
+    });
+  }
+};
+
+module.exports = {
+  register,
+  login,
+};
+</file>
+
+<file path="index.js">
+const express = require('express');
+const cors = require('cors');
+require("dotenv").config();
+
+const { createClient } = require("@supabase/supabase-js");
+const supabase = createClient(process.env.SUPABASE_URL || process.env.SUPABASE_PROJECT_URL, process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+const apiRoutes = require('./src/routes/apiRoutes');
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// API para ligar
+app.use("/api", apiRoutes);
+
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "Servidor rodando perfeitamente!" });
+});
+const formatProduct = (data) => ({
+  id: data.id,
+  category: data.category,
+  name: data.name,
+  price: data.price,
+  image: data.image,
+  discount: data.discount,
+  discountAmount: data.discount_amount,
+  productDetails: {
+    brand: data.brand,
+    shortName: data.short_name,
+    ref: data.ref,
+    rating: data.rating,
+    reviews: data.reviews_count,
+    description: data.description,
+    images: data.images,
+    availableSizes: data.available_sizes,
+    availableColors: data.available_colors,
+  },
+});
+
+app.get("/listarproducts", async (req, res) => {
+  const { data, error } = await supabase.from("products").select("*");
+  if (error) return res.status(400).json({ erro: error.message });
+  res.json(data.map(formatProduct));
+});
+
+app.get("/buscarproduct/:id", async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) return res.status(404).json({ erro: "Produto não encontrado" });
+  res.json(formatProduct(data));
+});
+
+app.get("/buscarproducts", async (req, res) => {
+  const { term } = req.query;
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .ilike("name", `%${term}%`);
+  if (error) return res.status(400).json({ erro: error.message });
+  res.json(data.map(formatProduct));
+});
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Servidor ativo com carinho na porta ${PORT}`);
+});
+</file>
+
+<file path="package.json">
+{
+  "name": "projeto-back-end---leaotech",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "cypress open"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.3",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.11.0",
+    "prisma": "^5.11.0"
+  }
+}
+</file>
+
+</files>

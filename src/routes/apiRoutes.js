@@ -1,6 +1,6 @@
 const express = require('express');
 const { register, login } = require('../controllers/authController');
-const { addToCart, getCart } = require('../controllers/cartController');
+const { getCart, addToCart, updateCartItem, removeCartItem, clearCart } = require('../controllers/cartController');
 const authMiddleware = require('../middlewares/authMiddleware'); // O nosso porteiro
 
 const router = express.Router();
@@ -9,7 +9,9 @@ const router = express.Router();
 router.post('/register', register);
 router.post('/login', login);
 
-router.post('/cart', authMiddleware, addToCart); // Quando o produto é adcionado no carrinho
-router.get('/cart', authMiddleware, getCart);    // Olhar o carrinho
-
+router.get('/cart/:userId', getCart);
+router.post('/cart/add', addToCart);
+router.put('/cart/item/:id', updateCartItem);
+router.delete('/cart/item/:id', removeCartItem);
+router.delete('/cart/clear/:userId', clearCart);
 module.exports = router;
